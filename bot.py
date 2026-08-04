@@ -30,13 +30,19 @@ def home():
 
 @app.route('/webhook', methods=['POST'])
 def receber_mensagens():
-    # Esta é a rota secreta que o Telegram usará para enviar mensagens ao seu robô
     if request.method == "POST":
         print("Nova mensagem recebida do Telegram!")
-        # Se o seu código original tiver uma linha de processamento de update,
-        # ela deve ser colocada aqui dentro (Ex: aplicacao.process_update(update))
+        dados = request.get_json()
+        update = aplicacao.update.de_json(dados, aplicacao.bot)
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(aplicacao.process_update(update))
+        
         return "OK", 200
     return "Metodo nao permitido", 405
+
+
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 5000))
