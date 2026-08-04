@@ -74,6 +74,10 @@ def set_webhook():
         return "Falha ao configurar Webhook.", 400
     except Exception as e:
         return f"Erro: {str(e)}", 500
+@app.route('/')
+def home():
+    return "Bot is running!", 200
+
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 5000))
