@@ -11,7 +11,7 @@ URL_RENDER = os.environ.get("RENDER_EXTERNAL_URL")
 URL_PROJETO = f"{URL_RENDER}/webhook" if URL_RENDER else "https://onrender.com"
 
 # Puxa o Token do Telegram configurado nas variáveis de ambiente
-TOKEN = os.environ.get("TELEGRAM_TOKEN")
+TOKEN = "8982941579:AAEG7le1MZk_RpzFebKhEc6Nltsf-lLfJL4"
 
 # Inicializa o aplicativo do Telegram usando a sua estrutura original
 aplicativo = ApplicationBuilder().token(TOKEN).build()
