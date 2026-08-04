@@ -8,10 +8,9 @@ TOKEN = "8982941579:AAEG7le1MZk_RpzFebKhEc6Nltsf-lLfJL4"
 URL_RENDER = os.environ.get("RENDER_EXTERNAL_URL")
 URL_PROJETO = f"{URL_RENDER}/webhook"
 
-# Variável que o servidor precisa encontrar
 app = Flask(__name__)
 
-# Inicializa o aplicativo do Telegram
+# Configuração limpa do aplicativo do Telegram
 aplicativo = ApplicationBuilder().token(TOKEN).build()
 
 async def iniciar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -47,34 +46,36 @@ async def receber_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     )
     await update.message.reply_text(mensagem)
 
-# Registra os handlers no aplicativo global
 aplicativo.add_handler(CommandHandler("start", iniciar))
 aplicativo.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, receber_mensagem))
 
-# Rota que receberá as mensagens do Telegram
+# Executa a inicialização obrigatória dos handlers em segundo plano
+loop_global = asyncio.get_event_loop()
+loop_global.run_until_complete(aplicativo.initialize())
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if request.method == "POST":
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        dados = request.get_json(force=True)
+        update = Update.de_json(dados, aplicativo.bot)
         
-        update = Update.de_json(request.get_json(force=True), aplicativo.bot)
-        loop.run_until_complete(aplicativo.initialize())
-        loop.run_until_complete(aplicativo.process_update(update))
+        # Processa a atualização de forma assíncrona e limpa
+        asyncio.run_coroutine_threadsafe(aplicativo.process_update(update), loop_global)
         return "OK", 200
 
-# Rota para registrar o Webhook
 @app.route('/set_webhook', methods=['GET'])
 def set_webhook():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    sucesso = loop.run_until_complete(aplicativo.bot.set_webhook(url=URL_PROJETO))
-    if sucesso:
-        return "Webhook configurado com sucesso!", 200
-    return "Falha ao configurar Webhook.", 400
-    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        sucesso = loop.run_until_complete(aplicativo.bot.set_webhook(url=URL_PROJETO))
+        if sucesso:
+            return "Webhook configurado com sucesso!", 200
+        return "Falha ao configurar Webhook.", 400
+    except Exception as e:
+        return f"Erro: {str(e)}", 500
+
 if __name__ == "__main__":
-    import os
     porta = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=porta)
     
