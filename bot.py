@@ -5,36 +5,40 @@ from flask import Flask, request
 # Inicializa o servidor Flask
 app = Flask(__name__)
 
-# IMPORTANTE: Substitua a linha abaixo pela forma exata como o seu robô é importado/inicializado
-# Exemplo: de telegram import Bot -> aplicacao = Bot(token="SEU_TOKEN")
-# Como não vejo o topo do seu arquivo, certifique-se de manter a sua variável 'aplicacao' aqui!
+# --- CONFIGURAÇÃO DO SEU BOT ---
+# IMPORTANTE: Caso seu arquivo original tivesse chaves de Token ou importações
+# específicas de bibliotecas no topo, certifique-se de mantê-las ativas.
+# O objeto 'aplicacao' abaixo precisa representar o seu gerenciador do bot.
 
-@app.route('/set_webhook', methods=['GET'])
-def set_webhook():
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        sucesso = loop.run_until_complete(aplicacao.bot.set_webhook(url="https://onrender.com"))
-        if sucesso:
-            return "Webhook configurado com sucesso!", 200
-        return "Falha ao configurar Webhook", 400
-    except Exception as e:
-        return f"Erro: {str(e)}", 500
-
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def home():
-    return "Bot is running!", 200
-
-if __name__ == "__main__":
+    # Rota raiz blindada: Sempre que o Render ou o Telegram baterem aqui,
+    # o webhook será forçado a se reconfigurar de forma automática.
     try:
         import asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        # Configura o Webhook apontando direto para a rota de recebimento (/webhook)
         loop.run_until_complete(aplicacao.bot.set_webhook(url="https://onrender.com"))
-        print("Webhook configurado com sucesso!")
+        print("Webhook reconfigurado com sucesso na raiz!")
     except Exception as e:
-        print(f"Erro ao configurar webhook: {e}")
+        print(f"Aviso de inicialização do webhook: {e}")
+        
+    if request.method == 'POST':
+        return "OK", 200
+    return "Bot is running e Webhook configurado!", 200
 
-        porta = int(os.environ.get("PORT", 5000))
-        app.run(host="0.0.0.0", port=porta)
+@app.route('/webhook', methods=['POST'])
+def receber_mensagens():
+    # Esta é a rota secreta que o Telegram usará para enviar mensagens ao seu robô
+    if request.method == "POST":
+        print("Nova mensagem recebida do Telegram!")
+        # Se o seu código original tiver uma linha de processamento de update,
+        # ela deve ser colocada aqui dentro (Ex: aplicacao.process_update(update))
+        return "OK", 200
+    return "Metodo nao permitido", 405
+
+if __name__ == "__main__":
+    porta = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=porta)
     
